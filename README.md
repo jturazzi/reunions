@@ -1,5 +1,223 @@
 # Réunions — Gestion des événements associatifs
 
+Application interne **Laravel 13** pour la planification des événements de l'ANEF Loire.
+
+Les événements créés sont automatiquement synchronisés dans les **agendas Outlook** des destinataires via **Microsoft Graph API**. L'authentification est déléguée à **Microsoft 365 SSO**.
+
+---
+
+## Fonctionnalités
+
+### Événements
+- Création, modification, suppression (titre, dates, lieu, description)
+- Classement par **type d'événement**
+- Synchronisation automatique dans Outlook à la création, modification et suppression
+- Résynchronisation manuelle par destinataire depuis la page de détail
+
+### Types d'événements
+- Catégories réutilisables (Conseil d'administration, Assemblée générale, Bureau…)
+- **Listes de distribution assignées par type** : tous les destinataires d'une liste reçoivent les événements du type correspondant
+
+### Listes de distribution (destinataires / groupes)
+- Listes nommées et réutilisables de destinataires (nom + email)
+- Assignables à un ou plusieurs types d'événements
+- Modification bloquée à la suppression si la liste est attachée à un type
+
+### Synchronisation Outlook
+| Action | Effet sur les agendas |
+|---|---|
+| Créer un événement | Événement ajouté dans l'agenda de chaque destinataire |
+| Modifier un événement | Événement mis à jour dans les agendas |
+| Supprimer un événement | Événement retiré des agendas |
+
+---
+
+## Prérequis
+
+- PHP **8.3+**, Composer
+- Node.js **20+**
+- Tenant **Microsoft 365 / Entra ID** avec une App Registration configurée
+
+---
+
+## Installation
+
+```bash
+git clone <repo> && cd reunions
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+npm run build
+```
+
+---
+
+## Configuration `.env`
+
+```env
+APP_NAME="Réunions"
+APP_URL=https://votre-domaine.fr
+APP_TIMEZONE=Europe/Paris
+APP_LOCALE=fr
+
+DB_CONNECTION=sqlite
+
+# Queue (synchronisation Graph asynchrone)
+QUEUE_CONNECTION=database
+
+# App Registration Microsoft 365 (SSO + Graph API)
+MICROSOFT_CLIENT_ID=xxxx
+MICROSOFT_CLIENT_SECRET=xxxx
+MICROSOFT_TENANT_ID=xxxx
+MICROSOFT_REDIRECT_URI=https://votre-domaine.fr/auth/microsoft/callback
+
+# Délai entre chaque appel Graph (secondes) — évite le throttling
+GRAPH_SYNC_DELAY_SECONDS=2
+```
+
+---
+
+## Configuration Azure (Entra ID)
+
+### 1. Créer l'App Registration
+
+1. **Azure Portal** → Entra ID → App registrations → New registration
+2. Redirect URI : `https://votre-domaine.fr/auth/microsoft/callback` (type **Web**)
+
+### 2. Permissions requises
+
+| Permission | Type | Usage |
+|---|---|---|
+| `User.Read` | **Delegated** | Connexion SSO (profil utilisateur) |
+| `Calendars.ReadWrite` | **Application** | Synchronisation des agendas Outlook |
+
+> ⚠️ La permission `Calendars.ReadWrite` de type **Application** nécessite un **Grant admin consent** dans Azure Portal.
+
+### 3. Accorder le consentement admin
+
+Azure Portal → App Registration → **API permissions** → **Grant admin consent for [tenant]**
+
+### 4. Créer un Client Secret
+
+Entra ID → App Registration → **Certificates & secrets** → New client secret → copier la valeur dans `MICROSOFT_CLIENT_SECRET`.
+
+---
+
+## Worker de queue
+
+Les synchronisations Graph sont traitées via la queue Laravel. Démarrer le worker :
+
+```bash
+php artisan queue:work --sleep=3 --tries=3
+```
+
+En production avec **Supervisor** :
+
+```ini
+[program:reunions-worker]
+command=php /var/www/reunions/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+directory=/var/www/reunions
+autostart=true
+autorestart=true
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/log/reunions-worker.log
+```
+
+---
+
+## Premier administrateur
+
+L'application crée automatiquement le compte à la première connexion SSO. Pour attribuer le rôle admin :
+
+```bash
+php artisan event:make-admin prenom.nom@votre-association.fr
+```
+
+---
+
+## Architecture
+
+```
+app/
+├── Http/Controllers/Admin/
+│   ├── EventController.php              # CRUD événements + resync individuel
+│   ├── EventTypeController.php          # CRUD types + assignation des listes
+│   ├── DistributionListController.php   # CRUD listes + destinataires
+│   ├── LogController.php                # Journal d'activité
+│   └── SystemController.php            # Page système
+├── Http/Controllers/Auth/
+│   └── MicrosoftAuthController.php      # SSO Microsoft + provisioning JIT
+├── Jobs/
+│   ├── SyncGraphCalendarJob.php                 # Dispatch N jobs individuels
+│   └── SyncGraphCalendarForRecipientJob.php     # Sync un destinataire (create/update/delete)
+├── Models/
+│   ├── Event.php
+│   ├── EventType.php                    # Pivot → DistributionList
+│   ├── DistributionList.php             # Pivot → EventType
+│   ├── DistributionListRecipient.php
+│   ├── GraphCalendarEntry.php           # Suivi par destinataire (status, graph_event_id)
+│   └── User.php
+├── Observers/
+│   └── EventObserver.php               # Déclenche la sync sur created/updated/deleting
+└── Services/
+    └── MicrosoftGraphService.php        # Client Graph API (token OAuth2 + CRUD calendrier)
+
+database/migrations/
+└── 2026_01_01_000000_create_all_tables.php   # Migration unique
+```
+
+### Flux de synchronisation
+
+```
+Événement créé / modifié / supprimé
+    └─► EventObserver
+            └─► SyncGraphCalendarJob (dispatché en queue)
+                    └─► collecte destinataires via eventType → distributionLists → recipients
+                    └─► dispatch N × SyncGraphCalendarForRecipientJob
+                                └─► MicrosoftGraphService (POST/PATCH/DELETE /users/{email}/events)
+                                └─► GraphCalendarEntry (status: pending → synced | failed)
+```
+
+---
+
+## Stack technique
+
+| Composant | Version |
+|---|---|
+| Laravel | 13.x |
+| PHP | 8.3+ |
+| Vue 3 + Inertia.js | — |
+| Tailwind CSS | 4.x |
+| Base de données | SQLite |
+| Queue | Database driver |
+
+---
+
+## Commandes utiles
+
+```bash
+# Promouvoir un utilisateur admin
+php artisan event:make-admin prenom.nom@domaine.fr
+
+# Vider le token Graph API mis en cache
+php artisan cache:forget ms_graph_access_token
+
+# Reset complet de la base
+php artisan migrate:fresh --seed
+
+# Build frontend
+npm run build
+npm run dev   # mode développement avec HMR
+
+# Vider les caches Laravel
+php artisan optimize:clear
+```
+
+
 Application interne **Laravel 13** pour la planification et la diffusion des événements de l'ANEF Loire.
 
 Les membres reçoivent une **invitation calendrier ICS** par email SMTP (Outlook affiche les boutons Accepter / Refuser / Tentative). L'authentification est déléguée à **Microsoft 365 SSO**.
