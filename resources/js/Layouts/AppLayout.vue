@@ -19,9 +19,9 @@
                         <span class="font-semibold text-gray-900 text-sm">{{ appName }}</span>
                     </Link>
 
-                    <!-- Admin nav -->
+                    <!-- Admin nav desktop -->
                     <template v-if="auth.user?.is_admin">
-                        <div class="w-px h-4 bg-gray-200 flex-shrink-0"></div>
+                        <div class="w-px h-4 bg-gray-200 flex-shrink-0 hidden sm:block"></div>
                         <div class="hidden sm:flex items-center gap-0.5">
                             <Link :href="route('admin.events.index')"
                                   :class="['rounded-md px-3 py-1.5 text-sm transition-colors', isActive('admin.events') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100']">
@@ -56,12 +56,55 @@
                             </div>
                             <span class="text-sm text-gray-700 hidden sm:block">{{ auth.user?.name }}</span>
                         </div>
-                        <div class="w-px h-4 bg-gray-200 flex-shrink-0"></div>
+                        <div class="w-px h-4 bg-gray-200 flex-shrink-0 hidden sm:block"></div>
                         <Link :href="route('logout')" method="post" as="button"
-                              class="text-sm text-gray-500 hover:text-red-600 transition-colors">
+                              class="text-sm text-gray-500 hover:text-red-600 transition-colors hidden sm:block">
                             Déconnexion
                         </Link>
                     </div>
+
+                    <!-- Hamburger (mobile) -->
+                    <button v-if="auth.user?.is_admin" @click="mobileMenuOpen = !mobileMenuOpen"
+                            class="sm:hidden flex items-center justify-center w-8 h-8 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+                            :aria-expanded="mobileMenuOpen" aria-label="Menu">
+                        <svg v-if="!mobileMenuOpen" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                        </svg>
+                        <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Menu mobile -->
+            <div v-if="mobileMenuOpen && auth.user?.is_admin" class="sm:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
+                <Link :href="route('admin.events.index')" @click="mobileMenuOpen = false"
+                      :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.events') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
+                    Événements
+                </Link>
+                <Link :href="route('admin.event-types.index')" @click="mobileMenuOpen = false"
+                      :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.event-types') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
+                    Types
+                </Link>
+                <Link :href="route('admin.distribution-lists.index')" @click="mobileMenuOpen = false"
+                      :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.distribution-lists') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
+                    Destinataires
+                </Link>
+                <Link :href="route('admin.logs.index')" @click="mobileMenuOpen = false"
+                      :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.logs') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
+                    Logs
+                </Link>
+                <Link :href="route('admin.system.index')" @click="mobileMenuOpen = false"
+                      :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.system') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
+                    Système
+                </Link>
+                <div class="border-t border-gray-100 mt-2 pt-2 flex items-center justify-between">
+                    <span class="text-sm text-gray-700">{{ auth.user?.name }}</span>
+                    <Link :href="route('logout')" method="post" as="button"
+                          class="text-sm text-gray-500 hover:text-red-600 transition-colors">
+                        Déconnexion
+                    </Link>
                 </div>
             </div>
         </nav>
@@ -98,7 +141,7 @@
 
 <script setup>
 import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 defineProps({
     title: String,
@@ -108,6 +151,7 @@ const page = usePage();
 const auth = computed(() => page.props.auth);
 const flash = computed(() => page.props.flash);
 const appName = 'Réunions';
+const mobileMenuOpen = ref(false);
 
 const initials = computed(() => {
     const name = auth.value?.user?.name ?? '';

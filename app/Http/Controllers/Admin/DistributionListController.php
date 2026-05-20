@@ -7,6 +7,8 @@ use App\Jobs\SyncGraphCalendarForRecipientJob;
 use App\Models\DistributionList;
 use App\Models\DistributionListRecipient;
 use App\Services\ActivityLogger;
+use App\Services\MicrosoftGraphService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,6 +34,13 @@ class DistributionListController extends Controller
 
     public function show(DistributionList $distributionList): Response
     {
+        try {
+            $msUsers = MicrosoftGraphService::make()->getAllUsers();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('getAllUsers échoué', ['error' => $e->getMessage()]);
+            $msUsers = [];
+        }
+
         return Inertia::render('Admin/DistributionLists/Show', [
             'list'       => [
                 'id'          => $distributionList->id,
@@ -43,6 +52,7 @@ class DistributionListController extends Controller
                 'name'  => $r->name,
                 'email' => $r->email,
             ]),
+            'msUsers' => $msUsers,
         ]);
     }
 
@@ -150,5 +160,20 @@ class DistributionListController extends Controller
 
         return redirect()->route('admin.distribution-lists.show', $distributionList)
             ->with('success', 'Destinataire supprimé. Les calendriers seront mis à jour.');
+    }
+
+    /**
+     * Recherche des utilisateurs dans l'annuaire Microsoft Azure AD.
+     */
+    public function searchMsUsers(Request $request): JsonResponse
+    {
+        $query = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']])['q'];
+
+        try {
+            $users = MicrosoftGraphService::make()->searchUsers($query);
+            return response()->json(['users' => $users]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 502);
+        }
     }
 }

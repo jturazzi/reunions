@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DistributionListController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\EventTypeController;
 use App\Http\Controllers\Admin\LogController;
+use App\Http\Controllers\Admin\RecipientController;
 use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
@@ -76,6 +77,9 @@ Route::middleware('auth')->group(function () {
             ->name('event-types.distribution-lists.detach');
 
         // Listes de distribution
+        Route::get('distribution-lists/ms-users', [DistributionListController::class, 'searchMsUsers'])
+            ->name('distribution-lists.ms-users');
+
         Route::resource('distribution-lists', DistributionListController::class)
             ->only(['index', 'show', 'create', 'store', 'destroy']);
 
@@ -90,6 +94,17 @@ Route::middleware('auth')->group(function () {
 
         Route::post('events/{event}/resend', [EventController::class, 'resendInvitation'])
             ->name('events.resend');
+
+        // Destinataires — vue individuelle + resync + vérification calendrier
+        Route::get('recipients/{email}', [RecipientController::class, 'show'])
+            ->name('recipients.show')
+            ->where('email', '[^/]+');
+        Route::post('recipients/{email}/resync', [RecipientController::class, 'resync'])
+            ->name('recipients.resync')
+            ->where('email', '[^/]+');
+        Route::post('recipients/{email}/check', [RecipientController::class, 'checkCalendar'])
+            ->name('recipients.check')
+            ->where('email', '[^/]+');
 
         // Logs d'actions
         Route::get('logs', [LogController::class, 'index'])->name('logs.index');
