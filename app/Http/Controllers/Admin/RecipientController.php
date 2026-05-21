@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\CheckCalendarEntryJob;
-use App\Jobs\SyncGraphCalendarForRecipientJob;
+use App\Jobs\EnsureCalendarEntryJob;
 use App\Models\GraphCalendarEntry;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -48,45 +47,31 @@ class RecipientController extends Controller
     }
 
     /**
-     * Remet en file de sync tous les événements actifs du destinataire.
-     * Le job gère automatiquement : update si déjà présent, recréation si absent.
+     * Vérifie l'existence dans Outlook et crée si absent — combine Vérifier + Resync.
+     *
+     * Pour chaque entrée active :
+     *   - si graph_event_id présent → vérifie dans Outlook ; si OK → met à jour ; si absent → recrée
+     *   - si pas de graph_event_id → crée directement
      */
-    public function resync(string $email): RedirectResponse
+    public function ensure(string $email): RedirectResponse
     {
         $entries = GraphCalendarEntry::with('event')
             ->where('recipient_email', $email)
-            ->whereHas('event')   // exclut les événements soft-deletés
-            ->get();
-
-        foreach ($entries as $entry) {
-            SyncGraphCalendarForRecipientJob::dispatch(
-                $entry->event_id,
-                $email,
-                $entry->recipient_name,
-                'update',
-            );
-        }
-
-        return back()->with('success', count($entries) . ' événements mis en file de resynchronisation.');
-    }
-
-    /**
-     * Envoie en queue la vérification de chaque événement synchronisé dans Outlook.
-     */
-    public function checkCalendar(string $email): RedirectResponse
-    {
-        $entries = GraphCalendarEntry::where('recipient_email', $email)
-            ->whereNotNull('graph_event_id')
+            ->whereHas('event')
             ->get();
 
         if ($entries->isEmpty()) {
-            return back()->with('success', 'Aucun événement synchronisé à vérifier.');
+            return back()->with('success', 'Aucun événement actif trouvé pour ce destinataire.');
         }
 
         foreach ($entries as $entry) {
-            CheckCalendarEntryJob::dispatch($entry->id);
+            EnsureCalendarEntryJob::dispatch(
+                $entry->event_id,
+                $email,
+                $entry->recipient_name,
+            );
         }
 
-        return back()->with('success', $entries->count() . ' vérification(s) lancée(s) en arrière-plan. Rechargez la page dans quelques instants.');
+        return back()->with('success', $entries->count() . ' job(s) de vérification/création lancé(s) en arrière-plan.');
     }
 }

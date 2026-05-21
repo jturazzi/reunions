@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DistributionListController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\EventTypeController;
 use App\Http\Controllers\Admin\LogController;
+use App\Http\Controllers\Admin\QueueController;
 use App\Http\Controllers\Admin\RecipientController;
 use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Auth\LoginController;
@@ -99,15 +100,16 @@ Route::middleware('auth')->group(function () {
         Route::get('recipients/{email}', [RecipientController::class, 'show'])
             ->name('recipients.show')
             ->where('email', '[^/]+');
-        Route::post('recipients/{email}/resync', [RecipientController::class, 'resync'])
-            ->name('recipients.resync')
-            ->where('email', '[^/]+');
-        Route::post('recipients/{email}/check', [RecipientController::class, 'checkCalendar'])
-            ->name('recipients.check')
+        Route::post('recipients/{email}/ensure', [RecipientController::class, 'ensure'])
+            ->name('recipients.ensure')
             ->where('email', '[^/]+');
 
         // Logs d'actions
         Route::get('logs', [LogController::class, 'index'])->name('logs.index');
+
+        // Surveillance de la queue
+        Route::get('queue', [QueueController::class, 'index'])->name('queue.index');
+        Route::get('queue/stats', [QueueController::class, 'stats'])->name('queue.stats');
 
         // Informations système
         Route::get('system', [SystemController::class, 'index'])->name('system.index');

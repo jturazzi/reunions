@@ -19,29 +19,17 @@
                     <p class="mt-0.5 text-sm text-gray-400 truncate">{{ email }}</p>
                 </div>
                 <div class="flex items-center gap-3 flex-shrink-0">
-                    <button @click="checkCalendar"
-                            :disabled="checkForm.processing || syncedEntries.length === 0"
-                            class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors">
-                        <svg v-if="checkForm.processing" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <button @click="ensureAll"
+                            :disabled="ensureForm.processing || activeEntries.length === 0"
+                            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                        <svg v-if="ensureForm.processing" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                         </svg>
                         <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
-                        Vérifier ({{ syncedEntries.length }})
-                    </button>
-                    <button @click="resyncAll"
-                            :disabled="resyncForm.processing || activeEntries.length === 0"
-                            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                        <svg v-if="resyncForm.processing" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                        <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                        Tout resynchroniser ({{ activeEntries.length }})
+                        Vérifier &amp; synchroniser ({{ activeEntries.length }})
                     </button>
                     <Link :href="route('admin.distribution-lists.index')"
                           class="text-sm text-gray-400 hover:text-gray-600 transition-colors">
@@ -208,6 +196,7 @@ const stats = computed(() => [
 
 const resyncForm = useForm({});
 const checkForm  = useForm({});
+const ensureForm = useForm({});
 
 function resyncAll() {
     resyncForm.post(route('admin.recipients.resync', props.email));
@@ -215,6 +204,10 @@ function resyncAll() {
 
 function checkCalendar() {
     checkForm.post(route('admin.recipients.check', props.email));
+}
+
+function ensureAll() {
+    ensureForm.post(route('admin.recipients.ensure', props.email));
 }
 
 function formatDate(iso) {

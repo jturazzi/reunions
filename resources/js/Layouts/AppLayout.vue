@@ -39,6 +39,10 @@
                                   :class="['rounded-md px-3 py-1.5 text-sm transition-colors', isActive('admin.logs') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100']">
                                 Logs
                             </Link>
+                            <Link :href="route('admin.queue.index')"
+                                  :class="['rounded-md px-3 py-1.5 text-sm transition-colors', isActive('admin.queue') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100']">
+                                Queue
+                            </Link>
                             <Link :href="route('admin.system.index')"
                                   :class="['rounded-md px-3 py-1.5 text-sm transition-colors', isActive('admin.system') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100']">
                                 Système
@@ -94,6 +98,10 @@
                 <Link :href="route('admin.logs.index')" @click="mobileMenuOpen = false"
                       :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.logs') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
                     Logs
+                </Link>
+                <Link :href="route('admin.queue.index')" @click="mobileMenuOpen = false"
+                      :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.queue') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
+                    Queue
                 </Link>
                 <Link :href="route('admin.system.index')" @click="mobileMenuOpen = false"
                       :class="['block rounded-md px-3 py-2 text-sm transition-colors', isActive('admin.system') ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-100']">
