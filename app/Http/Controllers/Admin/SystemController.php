@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Event;
+use App\Models\GraphCalendarEntry;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,8 +27,17 @@ class SystemController extends Controller
             'Fuseau horaire'   => config('app.timezone'),
         ];
 
+        $invitationStats = [
+            'total'   => GraphCalendarEntry::count(),
+            'synced'  => GraphCalendarEntry::where('status', 'synced')->count(),
+            'pending' => GraphCalendarEntry::where('status', 'pending')->count(),
+            'failed'  => GraphCalendarEntry::where('status', 'failed')->count(),
+            'events'  => Event::withoutTrashed()->whereHas('eventType')->count(),
+        ];
+
         return Inertia::render('Admin/System/Index', [
-            'info' => $info,
+            'info'            => $info,
+            'invitationStats' => $invitationStats,
         ]);
     }
 }
