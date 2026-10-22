@@ -2,6 +2,7 @@ import { createApp, h } from 'vue';
 import { createInertiaApp, Link, Head } from '@inertiajs/vue3';
 import { ZiggyVue } from 'ziggy-js';
 import axios from 'axios';
+import { initSentry } from './sentry';
 
 // Configurer Axios avec le token CSRF
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -16,7 +17,11 @@ createInertiaApp({
         return pages[`./Pages/${name}.vue`];
     },
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
+        const app = createApp({ render: () => h(App, props) });
+
+        initSentry(app);
+
+        app
             .use(plugin)
             .use(ZiggyVue)
             .component('Link', Link)

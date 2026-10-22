@@ -6,9 +6,11 @@ use App\Models\Event;
 use App\Models\User;
 use App\Observers\EventObserver;
 use App\Services\MicrosoftGraphService;
+use App\Support\SentryQueueReporting;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Microsoft\MicrosoftExtendSocialite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,10 +25,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        SentryQueueReporting::register();
+
         // Enregistrement du provider Microsoft Socialite
         $this->app['events']->listen(
             SocialiteWasCalled::class,
-            \SocialiteProviders\Microsoft\MicrosoftExtendSocialite::class.'@handle'
+            MicrosoftExtendSocialite::class.'@handle'
         );
 
         // Gate pour restreindre l'accès admin
