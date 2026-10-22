@@ -6,7 +6,7 @@ variables:
   IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
 
-build-image:
+gitlab-docker:
   stage: build
   image: docker:27
   services:
@@ -17,6 +17,8 @@ build-image:
     - |
       docker build \
         --cache-from "$IMAGE_LATEST" \
+        --build-arg APP_COMMIT="$CI_COMMIT_SHORT_SHA" \
+        --build-arg APP_BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         --tag "$IMAGE_TAG" \
         --tag "$IMAGE_LATEST" \
         .
