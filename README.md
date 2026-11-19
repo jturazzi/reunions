@@ -45,7 +45,7 @@ Les événements créés sont automatiquement synchronisés dans les **agendas O
 
 ## Prérequis
 
-- PHP **8.3+** (8.5 dans l'image Docker), Composer
+- PHP **8.3+** (8.6 dans l'image Docker), Composer
 - Node.js **20+**
 - Tenant **Microsoft 365 / Entra ID** avec une App Registration configurée
 
@@ -55,7 +55,7 @@ Les événements créés sont automatiquement synchronisés dans les **agendas O
 
 ### Docker (production)
 
-L'image est construite par GitHub Actions et publiée sur **ghcr.io** (`ghcr.io/jturazzi/reunions`). Elle embarque FrankenPHP (`serversideup/php:8.5-frankenphp-alpine`) et écoute sur le port **8080**.
+L'image est construite par GitHub Actions et publiée sur **ghcr.io** (`ghcr.io/jturazzi/reunions`). Elle embarque FrankenPHP (`serversideup/php:8.6-frankenphp-alpine`) et écoute sur le port **8080**.
 
 ```bash
 docker pull ghcr.io/jturazzi/reunions:latest
